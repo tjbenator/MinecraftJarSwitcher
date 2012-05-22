@@ -1,0 +1,164 @@
+#!/bin/bash
+#Written by: tjbenator
+#################################################
+#               Configurables			#
+#################################################
+
+#Use Full Paths 
+#minefolder="~/Library/Application Support/minecraft"
+minefolder="/home/travis/.minecraft/bin"
+launchername=~/minecraft_new.jar
+
+#################################################
+#		End Configurables		#
+#################################################
+
+#Colors by Jason Kull
+colorize()
+{
+        color="\e[0;34m"
+        case $1 in
+        "red")
+                color="\e[0;35m";;
+        "green")
+                color="\e[0;32m";;
+        "yellow")
+                color="\e[0;33m";;
+        "blue")
+                color="\e[0;36m";;
+        esac
+        echo -e "$color$2\e[0m"
+}
+
+launch()
+{
+	clear
+	if ps aux | grep -v grep | grep minecraft.LauncherFrame > /dev/null
+	then
+		colorize red "Minecraft is already running!"
+	else
+		colorize red "Launching $1"
+		nohup java -Xmx4096M -Xms4096M -cp $launchername net.minecraft.LauncherFrame 2>/dev/null 1>/dev/null &
+		ps -elf | grep minecraft.jar | awk '{print $4}' > .tempswitcher
+		while read line; do
+			nohup cpulimit -e $line -l 75  2>/dev/null 1>/dev/null &
+		done < .tempswitcher 
+	fi
+	#java -Xmx1024M -Xms1024M -cp $launchername net.minecraft.LauncherFrame
+}
+
+new_jar()
+{
+	clear
+	colorize green "Is the current minecraft.jar a new version? [y/N]"
+	read newversion
+	if [ "$newversion" = y ]
+	then
+		clear
+		colorize green "Enter the version number"
+		read newname
+		mv minecraft.jar "minecraft-$newname.jar"
+		#touch "minecraft-$newname.jar"
+	else
+		#Should probably ask BEFORE deleting this file
+		rm minecraft.jar
+	fi
+	clear
+}
+
+
+switch()
+{
+	pushd $minefolder
+#	clear
+	ls
+	if [ -h minecraft.jar ]
+	then
+		rm minecraft.jar
+	elif [ -f minecraft.jar ]
+	then
+		new_jar
+	else
+		#DANGER! DANGER WILL ROBINSON!
+		#Not a link OR a regular file. Directory?
+		echo "You need a minecraft jar silly!."
+		exit 1
+	fi
+
+	clear
+	number=1
+	colorize yellow "==============================="
+	for jars in *minecraft-*
+	do
+		colorize green "$number) $jars"
+		jars_a[$number]="$jars"
+		let "number++"
+	done
+	colorize yellow "==============================="
+
+	colorize red "\nChoose A JAR \n"
+	read choice
+	if [ -f "${jars_a[$choice]}" ]
+	then
+		ln -s "${jars_a[$choice]}" minecraft.jar
+	else
+		#Out of bounds choice. Default to the first one.
+		ln -s "${jars_a[0]}" minecraft.jar
+	fi
+
+	popd
+	echo "${jars_a[$choice]}" > ~/.mcswitcher
+	launch ${jars_a[$choice]}
+}
+
+####				    ####
+######## Begining of operations ########
+####				    ####
+
+### Lets clean the screen
+clear
+
+### Check to see which jar is selected (If any)
+if [ -e ~/.mcswitcher ]
+then
+	currentjar=$(head -1 ~/.mcswitcher)
+else
+	touch ~/.mcswitcher
+	echo "minecraft.jar" > ~/.mcswitcher
+	currentjar="minecraft.jar"
+fi
+
+
+## Skip entire menu.. (minecraft play)
+if [ "$1" = "switch" ]
+then
+
+	### Not my fault if you fail
+	colorize blue "I am \e[0;35mNOT\e[0;36m responsible for the loss of your JARs if you use my script incorrectly!"
+	echo ""
+	## current jar variable pulled from .mcswitcher
+	colorize yellow "Your current jar is $currentjar"
+	colorize green "Launch or Switch? [L/S]"
+
+	read option
+	case $option in 
+		L|l)
+			#Launches minecraft.. Obviously.
+			launch $currentjar
+		;;
+		S|s)
+			#No comment
+			switch
+		;;
+		*)
+			#Didn't match a menu.. Quiting.
+			clear
+			colorize red "Exiting... Invalid Input"
+		;;
+	esac
+
+else
+launch $currentjar
+fi
+
+#EOF
