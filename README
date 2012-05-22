@@ -1,0 +1,6 @@
+Edit the "minecraft" file for your .minecraft folder location and minecraft.jar (launcher).
+
+To launch minecraft "./minecraft"
+
+To switch jars "./minecraft switch"
+
