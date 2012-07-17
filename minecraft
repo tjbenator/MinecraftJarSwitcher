@@ -8,7 +8,8 @@
 #minefolder="~/Library/Application Support/minecraft"
 minefolder="/home/travis/.minecraft/bin"
 launchername=~/minecraft_new.jar
-
+JAVAOPTS="-Xmx2048M -Xms2048M" #Java Options such as memory
+CPU="75" #CPU Pecentage
 #################################################
 #		End Configurables		#
 #################################################
@@ -38,10 +39,10 @@ launch()
 		colorize red "Minecraft is already running!"
 	else
 		colorize red "Launching $1"
-		nohup java -Xmx4096M -Xms4096M -cp $launchername net.minecraft.LauncherFrame 2>/dev/null 1>/dev/null &
+		nohup java $JAVAOPTS -cp $launchername net.minecraft.LauncherFrame 2>/dev/null 1>/dev/null &
 		ps -elf | grep minecraft.jar | awk '{print $4}' > .tempswitcher
 		while read line; do
-			nohup cpulimit -e $line -l 75  2>/dev/null 1>/dev/null &
+			nohup cpulimit -e $line -l $CPU  2>/dev/null 1>/dev/null &
 		done < .tempswitcher 
 	fi
 	#java -Xmx1024M -Xms1024M -cp $launchername net.minecraft.LauncherFrame
@@ -132,7 +133,6 @@ fi
 ## Skip entire menu.. (minecraft play)
 if [ "$1" = "switch" ]
 then
-
 	### Not my fault if you fail
 	colorize blue "I am \e[0;35mNOT\e[0;36m responsible for the loss of your JARs if you use my script incorrectly!"
 	echo ""
