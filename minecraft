@@ -7,8 +7,8 @@
 #Use Full Paths 
 #minefolder="~/Library/Application Support/minecraft"
 minefolder="/home/travis/.minecraft/bin"
-launchername=~/minecraft_new.jar
-JAVAOPTS="-Xmx2048M -Xms2048M" #Java Options such as memory
+launchername=~/minecraft.jar
+JAVAOPTS=-Xmx2048M -Xms2048M #Java Options such as memory
 CPU="75" #CPU Pecentage
 #################################################
 #		End Configurables		#
@@ -40,10 +40,10 @@ launch()
 	else
 		colorize red "Launching $1"
 		nohup java $JAVAOPTS -cp $launchername net.minecraft.LauncherFrame 2>/dev/null 1>/dev/null &
-		ps -elf | grep minecraft.jar | awk '{print $4}' > .tempswitcher
+		ps -elf | grep minecraft.jar | awk '{print $4}' > ~/.tempswitcher
 		while read line; do
 			nohup cpulimit -e $line -l $CPU  2>/dev/null 1>/dev/null &
-		done < .tempswitcher 
+		done < ~/.tempswitcher 
 	fi
 	#java -Xmx1024M -Xms1024M -cp $launchername net.minecraft.LauncherFrame
 }
@@ -71,7 +71,6 @@ new_jar()
 switch()
 {
 	pushd $minefolder
-#	clear
 	ls
 	if [ -h minecraft.jar ]
 	then
@@ -82,18 +81,24 @@ switch()
 	else
 		#DANGER! DANGER WILL ROBINSON!
 		#Not a link OR a regular file. Directory?
-		echo "You need a minecraft jar silly!."
-		exit 1
+		#echo "You need a minecraft jar silly!."
+		#exit 1
+		colorize red  "You didn't have a minecraft.jar lets choose one!"
 	fi
 
 	clear
-	number=1
+	number=0
 	colorize yellow "==============================="
 	for jars in *minecraft-*
 	do
-		colorize green "$number) $jars"
-		jars_a[$number]="$jars"
 		let "number++"
+		if [ "$jars" == "$currentjar" ]
+		then
+		colorize green "$number) =$jars="
+		else
+		colorize blue "$number) $jars"
+		fi
+		jars_a[$number]="$jars"
 	done
 	colorize yellow "==============================="
 
@@ -108,7 +113,7 @@ switch()
 	fi
 
 	popd
-	echo "${jars_a[$choice]}" > ~/.mcswitcher
+	#echo "${jars_a[$choice]}" > ~/.mcswitcher
 	launch ${jars_a[$choice]}
 }
 
@@ -119,46 +124,14 @@ switch()
 ### Lets clean the screen
 clear
 
-### Check to see which jar is selected (If any)
-if [ -e ~/.mcswitcher ]
-then
-	currentjar=$(head -1 ~/.mcswitcher)
-else
-	touch ~/.mcswitcher
-	echo "minecraft.jar" > ~/.mcswitcher
-	currentjar="minecraft.jar"
-fi
-
+currentjar=`readlink ~/.minecraft/bin/minecraft.jar`
 
 ## Skip entire menu.. (minecraft play)
 if [ "$1" = "switch" ]
 then
-	### Not my fault if you fail
-	colorize blue "I am \e[0;35mNOT\e[0;36m responsible for the loss of your JARs if you use my script incorrectly!"
-	echo ""
-	## current jar variable pulled from .mcswitcher
-	colorize yellow "Your current jar is $currentjar"
-	colorize green "Launch or Switch? [L/S]"
-
-	read option
-	case $option in 
-		L|l)
-			#Launches minecraft.. Obviously.
-			launch $currentjar
-		;;
-		S|s)
-			#No comment
-			switch
-		;;
-		*)
-			#Didn't match a menu.. Quiting.
-			clear
-			colorize red "Exiting... Invalid Input"
-		;;
-	esac
-
+	switch
 else
-launch $currentjar
+	launch $currentjar
 fi
 
 #EOF
